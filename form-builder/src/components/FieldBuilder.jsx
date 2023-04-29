@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import Input from './Input';
 import Group from './Group';
 import Checkbox from './Checkbox';
 import Select from './Select';
+import Button from './Button';
 import { uploadMock } from '../services/mock-service';
 
 const Container = styled.div`
@@ -66,44 +67,41 @@ const ButtonsContainer = styled.div`
     }
 `;
 
-const SaveButton = styled.button`
-    background-color: #56B456;
-    border: 1px solid #4BAE4C;
-    color: white;
-    padding: 7px 12px;
-    border-radius: 5px;
-    font-size: 15px;
-    cursor: pointer;
-
-    &:hover {
-        background-color: white;
-        color: #56B456;
-    }
-`;
-
-const CancelButton = styled.button`
-    color: red;
-    background: none;
-    border: none;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding: 7px 12px;
-
-    &:hover {
-        border: 1px solid red;
-    }
-`;
-
 const FieldBuilder = () => {
     const [label, setLabel] = useState('');
     const [defaultValue, setDefaultValue] = useState('');
-    const [type, setType] = useState(true);
+    const [type, setType] = useState(false);
     const [choices, setChoices] = useState('');
     const [order, setOrder] = useState(1);
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const savedData = JSON.parse(localStorage.getItem('field-builder-data'));
+        setLabel(savedData.Label);
+        setDefaultValue(savedData['Default Value']);
+        setType(savedData.Type);
+        setChoices(savedData.Choices.join('\n'));
+        setOrder(savedData.Order);
+        setLoading(false);
+    }, []);
+
+    useEffect(() => {
+        if (!loading) {
+            const choicesArray = choices.split('\n')
+                .map(c => c.trim())
+                .filter(c => c !== '')
+            const data = {
+                Label: label.trim(),
+                Type: !!type,
+                'Default Value': defaultValue.trim(),
+                Choices: choicesArray,
+                Order: order
+            };
+
+            localStorage.setItem('field-builder-data', JSON.stringify(data));
+        }
+    }, [label, defaultValue, type, choices, order])
 
     const removeDuplicatedChoices = (ev) => {
         setChoices([...new Set(choices.split('\n'))].join('\n'))
@@ -131,9 +129,9 @@ const FieldBuilder = () => {
             setError('');
         }
         const data = {
-            Label: label,
+            Label: label.trim(),
             Type: !!type,
-            'Default Value': defaultValue,
+            'Default Value': defaultValue.trim(),
             Choices: choicesArray,
             Order: order
         };
@@ -193,17 +191,16 @@ const FieldBuilder = () => {
                     </Select>
                 </Group>
                 <ButtonsContainer>
-                    <SaveButton
+                    <Button
                         type='submit'
-                        onClick={submitValues}>
-                        Save changes
-                    </SaveButton>
+                        onClick={submitValues}
+                        label='Save changes' />
                     <span>Or</span>
-                    <CancelButton
+                    <Button
                         type='submit'
-                        onClick={clearSelection}>
-                        Cancel
-                    </CancelButton>
+                        onClick={clearSelection}
+                        label='Cancel'
+                        outlined />
                 </ButtonsContainer>
             </FieldsContainer>
         </Container>
